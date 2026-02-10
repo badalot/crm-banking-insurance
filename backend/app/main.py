@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db, engine, Base
+from app.api.v1 import api_router
 import redis
 
 # Create tables (temporaire, on utilisera Alembic plus tard)
@@ -23,6 +24,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include API routes
+app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 
 # Routes de base
