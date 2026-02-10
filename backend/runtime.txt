@@ -1,0 +1,2 @@
+# Railway uses Python 3.11 by default
+python-3.11.*
