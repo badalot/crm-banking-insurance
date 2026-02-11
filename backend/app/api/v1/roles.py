@@ -11,6 +11,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[RoleResponse])
+@router.get("", response_model=List[RoleResponse])
 def list_roles(
     skip: int = 0,
     limit: int = 100,

@@ -12,6 +12,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[UserResponse])
+@router.get("", response_model=List[UserResponse])
 def list_users(
     skip: int = 0,
     limit: int = 100,
