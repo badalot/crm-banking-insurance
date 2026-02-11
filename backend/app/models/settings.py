@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
 from sqlalchemy.sql import func
-from app.database import Base
+from app.core.database import Base
 
 class SystemSettings(Base):
     """Modèle pour les paramètres système"""
