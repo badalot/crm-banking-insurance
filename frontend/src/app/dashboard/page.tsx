@@ -252,12 +252,20 @@ export default function DashboardPage() {
                       <p className="text-xs text-gray-400 truncate">{user.email}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={logout}
-                    className="w-full px-4 py-2 text-sm rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"
-                  >
-                    Déconnexion
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push('/dashboard/profile')}
+                      className="flex-1 px-4 py-2 text-sm rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-all"
+                    >
+                      Mon Profil
+                    </button>
+                    <button
+                      onClick={logout}
+                      className="flex-1 px-4 py-2 text-sm rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"
+                    >
+                      Déconnexion
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
