@@ -235,6 +235,8 @@ export default function UsersPage() {
         }
 
         const newUser = await createResponse.json();
+        console.log('User created:', newUser);
+        console.log('Assigning roles:', formData.role_ids);
 
         // Assign roles
         const rolesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${newUser.id}/roles`, {
@@ -246,10 +248,16 @@ export default function UsersPage() {
           body: JSON.stringify({ role_ids: formData.role_ids }),
         });
 
+        console.log('Roles response status:', rolesResponse.status);
+
         if (!rolesResponse.ok) {
           const error = await rolesResponse.json();
+          console.error('Roles assignment error:', error);
           throw new Error(error.detail || 'Erreur lors de l\'assignation des rôles');
         }
+
+        const updatedUser = await rolesResponse.json();
+        console.log('User with roles:', updatedUser);
 
         setMessage({ type: 'success', text: 'Utilisateur créé avec succès !' });
       }
