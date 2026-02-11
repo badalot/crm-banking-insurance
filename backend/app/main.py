@@ -4,7 +4,12 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db, engine, Base
 from app.api.v1 import api_router
+from app.api.middleware.audit import audit_middleware
 import redis
+
+# Import models to create tables
+from app.models.user import User, Role, Permission  # noqa
+from app.models.audit import AuditLog  # noqa
 
 # Create tables (temporaire, on utilisera Alembic plus tard)
 Base.metadata.create_all(bind=engine)
@@ -24,6 +29,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Audit logging middleware
+app.middleware("http")(audit_middleware)
 
 # Include API routes
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)

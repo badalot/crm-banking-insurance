@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -11,6 +11,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
 
 async def get_current_user(
+    request: Request,
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ) -> User:
@@ -31,6 +32,11 @@ async def get_current_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="µšër ñøt føµñðẤğ倪İЂҰक्र्तिृまẤğ倪นั้ढूँ"
         )
+    
+    # Store user info in request state for audit middleware
+    request.state.user_id = str(user.id)
+    request.state.user_email = user.email
+    request.state.user_name = user.full_name
     
     return user
 
