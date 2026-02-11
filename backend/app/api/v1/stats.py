@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.core.database import get_db
 from app.core.deps import has_permission
 from app.models.user import User, Role
@@ -24,7 +24,7 @@ def get_dashboard_stats(
     inactive_users = total_users - active_users
     
     # Users created in last 30 days
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     new_users_last_month = db.query(User).filter(
         User.created_at >= thirty_days_ago
     ).count()
@@ -38,7 +38,7 @@ def get_dashboard_stats(
         func.count(User.id).label('count')
     ).join(User.roles).group_by(Role.name).all()
     
-    users_by_role_dict = {role: count for role, count in users_by_role}
+    users_by_role_dict = dict(users_by_role)
     
     # Recent users (last 10)
     recent_users = db.query(User).order_by(User.created_at.desc()).limit(10).all()
@@ -63,7 +63,7 @@ def get_dashboard_stats(
         "total_roles": total_roles,
         "users_by_role": users_by_role_dict,
         "recent_users": recent_users_data,
-        "last_updated": datetime.utcnow().isoformat()
+        "last_updated": datetime.now(timezone.utc).isoformat()
     }
 
 
@@ -77,7 +77,7 @@ def get_activity_stats(
     """
     Récupérer les statistiques d'activité (nombre d'utilisateurs créés par jour)
     """
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
     
     # Users created per day
     activity_data = []

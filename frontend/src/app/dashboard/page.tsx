@@ -405,35 +405,39 @@ export default function DashboardPage() {
                 Utilisateurs récents
               </h3>
               <div className="space-y-3">
-                {statsLoading ? (
+                {statsLoading && (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
                   </div>
-                ) : dashboardStats && dashboardStats.recent_users.length > 0 ? (
-                  dashboardStats.recent_users.slice(0, 5).map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all">
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
-                          user.is_active ? 'bg-gradient-to-br from-purple-600 to-pink-600' : 'bg-gray-600'
-                        }`}>
-                          {user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                )}
+                {!statsLoading && dashboardStats && dashboardStats.recent_users.length > 0 && (
+                  <>
+                    {dashboardStats.recent_users.slice(0, 5).map((user) => (
+                      <div key={user.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+                            user.is_active ? 'bg-gradient-to-br from-purple-600 to-pink-600' : 'bg-gray-600'
+                          }`}>
+                            {user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-medium truncate">{user.full_name}</p>
+                            <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white font-medium truncate">{user.full_name}</p>
-                          <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                        <div className="flex items-center gap-2">
+                          {user.roles.length > 0 && (
+                            <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-300">
+                              {user.roles[0]}
+                            </span>
+                          )}
+                          <span className={`w-2 h-2 rounded-full ${user.is_active ? 'bg-green-400' : 'bg-gray-400'}`} />
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {user.roles.length > 0 && (
-                          <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-300">
-                            {user.roles[0]}
-                          </span>
-                        )}
-                        <span className={`w-2 h-2 rounded-full ${user.is_active ? 'bg-green-400' : 'bg-gray-400'}`} />
-                      </div>
-                    </div>
-                  ))
-                ) : (
+                    ))}
+                  </>
+                )}
+                {!statsLoading && (!dashboardStats || dashboardStats.recent_users.length === 0) && (
                   <div className="text-center py-8 text-gray-400">
                     <svg className="w-16 h-16 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
