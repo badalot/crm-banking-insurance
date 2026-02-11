@@ -10,7 +10,7 @@ from app.schemas.settings import (
     SystemSettingsUpdate,
     SystemSettingsCreate
 )
-from app.core.config import settings
+from app.core.config import settings as config_settings
 
 router = APIRouter()
 
@@ -30,7 +30,7 @@ def get_settings(
         default_settings = SystemSettings(
             site_name="CRM Banking & Insurance",
             site_description="Système de gestion de la relation client",
-            support_email=settings.FIRST_SUPERUSER,
+            support_email=config_settings.FIRST_SUPERUSER,
             timezone="Africa/Abidjan",
             language="fr",
             date_format="DD/MM/YYYY",
@@ -48,7 +48,7 @@ def get_settings(
             smtp_username="",
             smtp_password="",
             smtp_use_tls=True,
-            smtp_from_email=settings.FIRST_SUPERUSER,
+            smtp_from_email=config_settings.FIRST_SUPERUSER,
             smtp_from_name="CRM System",
             enable_audit_log=True,
             enable_email_notifications=True,
@@ -134,7 +134,7 @@ def reset_settings(
     defaults = {
         "site_name": "CRM Banking & Insurance",
         "site_description": "Système de gestion de la relation client",
-        "support_email": settings.FIRST_SUPERUSER,
+        "support_email": config_settings.FIRST_SUPERUSER,
         "timezone": "Africa/Abidjan",
         "language": "fr",
         "date_format": "DD/MM/YYYY",
@@ -152,7 +152,7 @@ def reset_settings(
         "smtp_username": "",
         "smtp_password": "",
         "smtp_use_tls": True,
-        "smtp_from_email": settings.FIRST_SUPERUSER,
+        "smtp_from_email": config_settings.FIRST_SUPERUSER,
         "smtp_from_name": "CRM System",
         "enable_audit_log": True,
         "enable_email_notifications": True,
