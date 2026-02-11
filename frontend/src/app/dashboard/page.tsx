@@ -3,17 +3,65 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import API_URL from '@/config/api';
+
+interface DashboardStats {
+  total_users: number;
+  active_users: number;
+  inactive_users: number;
+  new_users_last_month: number;
+  total_roles: number;
+  users_by_role: Record<string, number>;
+  recent_users: Array<{
+    id: string;
+    email: string;
+    username: string;
+    full_name: string;
+    created_at: string;
+    is_active: boolean;
+    roles: string[];
+  }>;
+  last_updated: string;
+}
 
 export default function DashboardPage() {
   const { user, loading, logout, isAuthenticated } = useAuth();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push('/login');
     }
   }, [loading, isAuthenticated, router]);
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      fetchDashboardStats();
+    }
+  }, [isAuthenticated, user]);
+
+  const fetchDashboardStats = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setDashboardStats(data);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -33,8 +81,9 @@ export default function DashboardPage() {
   const stats = [
     { 
       id: 'stat-1', 
-      label: 'Clients actifs', 
-      value: '0', 
+      label: 'Utilisateurs actifs', 
+      value: dashboardStats?.active_users.toString() || '0', 
+      subtext: `${dashboardStats?.inactive_users || 0} inactifs`,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -44,33 +93,36 @@ export default function DashboardPage() {
     },
     { 
       id: 'stat-2', 
-      label: 'Dossiers KYC', 
-      value: '0', 
+      label: 'Total utilisateurs', 
+      value: dashboardStats?.total_users.toString() || '0',
+      subtext: `+${dashboardStats?.new_users_last_month || 0} ce mois`,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
         </svg>
       ),
       color: 'from-blue-600 to-cyan-600' 
     },
     { 
       id: 'stat-3', 
-      label: 'Tâches en cours', 
-      value: '0', 
+      label: 'Rôles configurés', 
+      value: dashboardStats?.total_roles.toString() || '0', 
+      subtext: 'rôles actifs',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
       ),
       color: 'from-green-600 to-emerald-600' 
     },
     { 
       id: 'stat-4', 
-      label: 'Alertes', 
+      label: 'Clients actifs', 
       value: '0', 
+      subtext: 'Bientôt disponible',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       ),
       color: 'from-orange-600 to-red-600' 
@@ -307,12 +359,18 @@ export default function DashboardPage() {
                   <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center text-white group-hover:scale-110 transition-transform`}>
                     {stat.icon}
                   </div>
-                  <span className="text-xs px-2 py-1 rounded-lg bg-green-500/10 text-green-400">
-                    +0%
-                  </span>
                 </div>
-                <h3 className="text-3xl font-bold text-white mb-1">{stat.value}</h3>
+                <h3 className="text-3xl font-bold text-white mb-1">
+                  {statsLoading ? (
+                    <div className="animate-pulse bg-gray-700 h-8 w-16 rounded"></div>
+                  ) : (
+                    stat.value
+                  )}
+                </h3>
                 <p className="text-sm text-gray-400">{stat.label}</p>
+                {stat.subtext && (
+                  <p className="text-xs text-gray-500 mt-1">{stat.subtext}</p>
+                )}
               </div>
             ))}
           </div>
@@ -338,22 +396,51 @@ export default function DashboardPage() {
 
           {/* Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fadeInUp delay-300">
-            {/* Recent Activity */}
+            {/* Recent Users */}
             <div className="glass-dark rounded-2xl p-6 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
-                Activité récente
+                Utilisateurs récents
               </h3>
-              <div className="space-y-4">
-                <div className="text-center py-8 text-gray-400">
-                  <svg className="w-16 h-16 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  <p>Aucune activité pour le moment</p>
-                  <p className="text-sm mt-2">Commencez par ajouter un client</p>
-                </div>
+              <div className="space-y-3">
+                {statsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
+                  </div>
+                ) : dashboardStats && dashboardStats.recent_users.length > 0 ? (
+                  dashboardStats.recent_users.slice(0, 5).map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+                          user.is_active ? 'bg-gradient-to-br from-purple-600 to-pink-600' : 'bg-gray-600'
+                        }`}>
+                          {user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-medium truncate">{user.full_name}</p>
+                          <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {user.roles.length > 0 && (
+                          <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-300">
+                            {user.roles[0]}
+                          </span>
+                        )}
+                        <span className={`w-2 h-2 rounded-full ${user.is_active ? 'bg-green-400' : 'bg-gray-400'}`} />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    <svg className="w-16 h-16 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <p>Aucun utilisateur pour le moment</p>
+                  </div>
+                )}
               </div>
             </div>
 
