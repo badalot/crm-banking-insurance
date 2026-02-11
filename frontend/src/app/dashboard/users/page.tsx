@@ -158,8 +158,16 @@ export default function UsersPage() {
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/users/${userId}`, {
-        method: 'DELETE',
+      
+      // Si actif, on désactive (DELETE), sinon on réactive (POST /activate)
+      const url = currentStatus 
+        ? `${API_URL}/users/${userId}` 
+        : `${API_URL}/users/${userId}/activate`;
+      
+      const method = currentStatus ? 'DELETE' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -167,9 +175,17 @@ export default function UsersPage() {
 
       if (response.ok) {
         fetchUsers();
+        setMessage({ 
+          type: 'success', 
+          text: currentStatus ? 'Utilisateur désactivé avec succès' : 'Utilisateur réactivé avec succès' 
+        });
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      } else {
+        setMessage({ type: 'error', text: 'Erreur lors de la modification du statut' });
       }
     } catch (error) {
       console.error('Error toggling user status:', error);
+      setMessage({ type: 'error', text: 'Erreur réseau' });
     }
   };
 

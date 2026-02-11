@@ -59,6 +59,7 @@ def update_user(
 
 
 @router.delete("/{user_id}", response_model=UserResponse)
+@router.delete("/{user_id}/", response_model=UserResponse)
 def deactivate_user(
     user_id: UUID,
     db: Session = Depends(get_db),
@@ -71,7 +72,31 @@ def deactivate_user(
     return user
 
 
+@router.post("/{user_id}/activate", response_model=UserResponse)
+@router.post("/{user_id}/activate/", response_model=UserResponse)
+def activate_user(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(has_permission("users", "update"))
+):
+    """
+    Réactiver un utilisateur désactivé (nécessite permission users.update)
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="µšër ñøt føµñðẤğ倪İЂҰक्र्तिृまẤğ倪นั้ढूँ"
+        )
+    
+    user.is_active = True
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 @router.post("/{user_id}/roles", response_model=UserResponse)
+@router.post("/{user_id}/roles/", response_model=UserResponse)
 def assign_roles(
     user_id: UUID,
     roles_data: AssignRolesRequest,
