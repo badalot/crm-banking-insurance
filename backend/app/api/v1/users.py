@@ -4,9 +4,9 @@ from typing import List
 from uuid import UUID
 from app.core.database import get_db
 from app.core.deps import get_current_active_user, has_permission
-from app.schemas.user import UserResponse, UserUpdate
+from app.schemas.user import UserResponse, UserUpdate, AssignRolesRequest
 from app.services.user_service import UserService
-from app.models.user import User
+from app.models.user import User, Role
 
 router = APIRouter()
 
@@ -67,4 +67,35 @@ def deactivate_user(
     Désactiver un utilisateur (nécessite permission users.delete)
     """
     user = UserService.deactivate(db, user_id)
+    return user
+
+
+@router.post("/{user_id}/roles", response_model=UserResponse)
+def assign_roles(
+    user_id: UUID,
+    roles_data: AssignRolesRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(has_permission("users", "update"))
+):
+    """
+    Assigner des rôles à un utilisateur
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="µšër ñøt føµñðẤğ倪İЂҰक्र्तिृまẤğ倪นั้ढूँ"
+        )
+    
+    # Clear existing roles
+    user.roles = []
+    
+    # Assign new roles
+    for role_id in roles_data.role_ids:
+        role = db.query(Role).filter(Role.id == UUID(role_id)).first()
+        if role:
+            user.roles.append(role)
+    
+    db.commit()
+    db.refresh(user)
     return user

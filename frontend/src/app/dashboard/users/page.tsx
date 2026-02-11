@@ -17,16 +17,45 @@ interface User {
   roles: Array<{ id: string; name: string }>;
 }
 
+interface Role {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+interface UserFormData {
+  email: string;
+  username: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  password?: string;
+  role_ids: string[];
+}
+
 export default function UsersPage() {
   const { user, loading, isAuthenticated } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  
+  const [formData, setFormData] = useState<UserFormData>({
+    email: '',
+    username: '',
+    first_name: '',
+    last_name: '',
+    phone: '',
+    password: '',
+    role_ids: [],
+  });
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -37,12 +66,26 @@ export default function UsersPage() {
   useEffect(() => {
     if (user) {
       fetchUsers();
+      fetchRoles();
     }
   }, [user]);
 
   useEffect(() => {
     filterUsers();
   }, [users, searchTerm, filterStatus]);
+
+  useEffect(() => {
+    if (selectedUser) {
+      setFormData({
+        email: selectedUser.email,
+        username: selectedUser.username,
+        first_name: selectedUser.first_name,
+        last_name: selectedUser.last_name,
+        phone: selectedUser.phone || '',
+        role_ids: selectedUser.roles.map(r => r.id),
+      });
+    }
+  }, [selectedUser]);
 
   const fetchUsers = async () => {
     try {
@@ -61,6 +104,24 @@ export default function UsersPage() {
       console.error('Error fetching users:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/roles`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRoles(data);
+      }
+    } catch (error) {
+      console.error('Error fetching roles:', error);
     }
   };
 
@@ -103,6 +164,130 @@ export default function UsersPage() {
     } catch (error) {
       console.error('Error toggling user status:', error);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (selectedUser) {
+        // Update user
+        const updateResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${selectedUser.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            first_name: formData.first_name,
+            last_name: formData.last_name,
+            email: formData.email,
+            phone: formData.phone,
+          }),
+        });
+
+        if (!updateResponse.ok) {
+          const error = await updateResponse.json();
+          throw new Error(error.detail || 'Erreur lors de la mise à jour');
+        }
+
+        // Assign roles
+        const rolesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${selectedUser.id}/roles`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ role_ids: formData.role_ids }),
+        });
+
+        if (!rolesResponse.ok) {
+          const error = await rolesResponse.json();
+          throw new Error(error.detail || 'Erreur lors de l\'assignation des rôles');
+        }
+
+        setMessage({ type: 'success', text: 'Utilisateur modifié avec succès !' });
+      } else {
+        // Create user
+        const createResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            username: formData.username,
+            first_name: formData.first_name,
+            last_name: formData.last_name,
+            phone: formData.phone,
+            password: formData.password,
+          }),
+        });
+
+        if (!createResponse.ok) {
+          const error = await createResponse.json();
+          throw new Error(error.detail || 'Erreur lors de la création');
+        }
+
+        const newUser = await createResponse.json();
+
+        // Assign roles
+        const rolesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${newUser.id}/roles`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ role_ids: formData.role_ids }),
+        });
+
+        if (!rolesResponse.ok) {
+          const error = await rolesResponse.json();
+          throw new Error(error.detail || 'Erreur lors de l\'assignation des rôles');
+        }
+
+        setMessage({ type: 'success', text: 'Utilisateur créé avec succès !' });
+      }
+
+      fetchUsers();
+      setTimeout(() => {
+        handleCloseModal();
+      }, 1500);
+    } catch (error: any) {
+      console.error('Error saving user:', error);
+      setMessage({ type: 'error', text: error.message || 'Erreur de connexion au serveur' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowCreateModal(false);
+    setSelectedUser(null);
+    setMessage({ type: '', text: '' });
+    setFormData({
+      email: '',
+      username: '',
+      first_name: '',
+      last_name: '',
+      phone: '',
+      password: '',
+      role_ids: [],
+    });
+  };
+
+  const toggleRole = (roleId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      role_ids: prev.role_ids.includes(roleId)
+        ? prev.role_ids.filter(id => id !== roleId)
+        : [...prev.role_ids, roleId]
+    }));
   };
 
   if (loading || !user) {
@@ -201,19 +386,23 @@ export default function UsersPage() {
 
         {/* Users Table */}
         <div className="glass-dark rounded-2xl border border-white/10 overflow-hidden animate-fadeInUp delay-200">
-          {isLoading ? (
+          {isLoading && (
             <div className="p-12 text-center text-gray-400">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
               Chargement des utilisateurs...
             </div>
-          ) : filteredUsers.length === 0 ? (
+          )}
+          
+          {!isLoading && filteredUsers.length === 0 && (
             <div className="p-12 text-center text-gray-400">
               <svg className="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
               </svg>
               <p>Aucun utilisateur trouvé</p>
             </div>
-          ) : (
+          )}
+          
+          {!isLoading && filteredUsers.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -302,23 +491,196 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Create/Edit Modal - À implémenter */}
+      {/* Create/Edit Modal */}
       {(showCreateModal || selectedUser) && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="glass-dark rounded-2xl p-8 border border-white/10 max-w-2xl w-full mx-4">
-            <h2 className="text-2xl font-bold text-white mb-6">
-              {selectedUser ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'}
-            </h2>
-            <p className="text-gray-400 mb-4">Modal à implémenter...</p>
-            <button
-              onClick={() => {
-                setShowCreateModal(false);
-                setSelectedUser(null);
-              }}
-              className="px-6 py-3 rounded-xl bg-gray-500/20 text-white hover:bg-gray-500/30 transition-all"
-            >
-              Fermer
-            </button>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-dark rounded-2xl p-8 border border-white/10 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                <svg className="w-7 h-7 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                {selectedUser ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'}
+              </h2>
+              <button
+                onClick={handleCloseModal}
+                className="p-2 rounded-lg glass hover:bg-white/10 transition-all text-gray-400 hover:text-white"
+                title="Fermer"
+                aria-label="Fermer la fenêtre"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Message */}
+            {message.text && (
+              <div className={`mb-6 p-4 rounded-xl border ${
+                message.type === 'success' 
+                  ? 'bg-green-500/10 border-green-500/30 text-green-400' 
+                  : 'bg-red-500/10 border-red-500/30 text-red-400'
+              }`}>
+                {message.text}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Name Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="first_name" className="block text-sm font-medium text-gray-400 mb-2">
+                    Prénom *
+                  </label>
+                  <input
+                    id="first_name"
+                    type="text"
+                    value={formData.first_name}
+                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl glass bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:outline-none transition-all"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="last_name" className="block text-sm font-medium text-gray-400 mb-2">
+                    Nom *
+                  </label>
+                  <input
+                    id="last_name"
+                    type="text"
+                    value={formData.last_name}
+                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl glass bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:outline-none transition-all"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Username & Email */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="username" className="block text-sm font-medium text-gray-400 mb-2">
+                    Nom d&apos;utilisateur *
+                  </label>
+                  <input
+                    id="username"
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl glass bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:outline-none transition-all"
+                    required
+                    disabled={!!selectedUser}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-400 mb-2">
+                    Email *
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl glass bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:outline-none transition-all"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Phone & Password */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-400 mb-2">
+                    Téléphone
+                  </label>
+                  <input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl glass bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:outline-none transition-all"
+                    placeholder="+33 6 12 34 56 78"
+                  />
+                </div>
+                {!selectedUser && (
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-400 mb-2">
+                      Mot de passe *
+                    </label>
+                    <input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl glass bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:outline-none transition-all"
+                      required={!selectedUser}
+                      minLength={8}
+                      placeholder="Minimum 8 caractères"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Roles */}
+              <div>
+                <div className="block text-sm font-medium text-gray-400 mb-3">
+                  Rôles *
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {roles.map((role) => (
+                    <button
+                      key={role.id}
+                      type="button"
+                      onClick={() => toggleRole(role.id)}
+                      className={`p-4 rounded-xl border-2 transition-all text-left ${
+                        formData.role_ids.includes(role.id)
+                          ? 'bg-purple-500/20 border-purple-500/50 text-white'
+                          : 'bg-white/5 border-white/10 text-gray-400 hover:border-purple-500/30'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{role.name}</p>
+                          {role.description && (
+                            <p className="text-xs mt-1 opacity-75">{role.description}</p>
+                          )}
+                        </div>
+                        {formData.role_ids.includes(role.id) && (
+                          <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                {formData.role_ids.length === 0 && (
+                  <p className="text-sm text-red-400 mt-2">Veuillez sélectionner au moins un rôle</p>
+                )}
+              </div>
+
+              {/* Buttons */}
+              <div className="flex items-center gap-3 pt-4">
+                <button
+                  type="submit"
+                  disabled={isSaving || formData.role_ids.length === 0}
+                  className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  {(() => {
+                    if (isSaving) return 'Enregistrement...';
+                    if (selectedUser) return 'Modifier';
+                    return 'Créer';
+                  })()}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-6 py-3 rounded-xl bg-gray-500/20 text-white hover:bg-gray-500/30 transition-all"
+                >
+                  Annuler
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

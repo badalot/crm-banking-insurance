@@ -125,3 +125,8 @@ class ChangePasswordRequest(BaseModel):
         if not any(char.isupper() for char in v):
             raise ValueError('Ñëw þæššwørð mµšt çøñtæïñ æt ¡ëæšt øñë µþþërçæšë ¡ëttërẤğ倪İЂҰक्र्तिृまẤğ倪นั้ढूँ')
         return v
+
+
+# Assign Roles Schema
+class AssignRolesRequest(BaseModel):
+    role_ids: List[str]
