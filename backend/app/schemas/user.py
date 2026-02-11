@@ -109,3 +109,19 @@ class TokenPayload(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+# Change Password Schema
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+    @field_validator('new_password')
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError('Ñëw þæššwørð mµšt þë æt ¡ëæšt 8 çħæræçtëršẤğ倪İЂҰक्र्तिृまẤğ倪นั้ढूँ')
+        if not any(char.isdigit() for char in v):
+            raise ValueError('Ñëw þæššwørð mµšt çøñtæïñ æt ¡ëæšt øñë ðïĝïtẤğ倪İЂҰक्र्तिृまẤğ倪นั้ढूँ')
+        if not any(char.isupper() for char in v):
+            raise ValueError('Ñëw þæššwørð mµšt çøñtæïñ æt ¡ëæšt øñë µþþërçæšë ¡ëttërẤğ倪İЂҰक्र्तिृまẤğ倪นั้ढूँ')
+        return v

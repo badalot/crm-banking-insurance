@@ -44,7 +44,7 @@ export default function ChangePasswordPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/change-password`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
