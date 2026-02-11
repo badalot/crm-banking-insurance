@@ -3,6 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
+import API_URL from '@/config/api';
 
 interface User {
   id: string;
@@ -90,7 +91,7 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
+      const response = await fetch(`${API_URL}/users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -110,8 +111,8 @@ export default function UsersPage() {
   const fetchRoles = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching roles from:', `${process.env.NEXT_PUBLIC_API_URL}/roles`);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/roles`, {
+      console.log('Fetching roles from:', `${API_URL}/roles`);
+      const response = await fetch(`${API_URL}/roles`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -157,7 +158,7 @@ export default function UsersPage() {
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}`, {
+      const response = await fetch(`${API_URL}/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -182,7 +183,7 @@ export default function UsersPage() {
       
       if (selectedUser) {
         // Update user
-        const updateResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${selectedUser.id}`, {
+        const updateResponse = await fetch(`${API_URL}/users/${selectedUser.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -202,7 +203,7 @@ export default function UsersPage() {
         }
 
         // Assign roles
-        const rolesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${selectedUser.id}/roles`, {
+        const rolesResponse = await fetch(`${API_URL}/users/${selectedUser.id}/roles`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -219,7 +220,7 @@ export default function UsersPage() {
         setMessage({ type: 'success', text: 'Utilisateur modifié avec succès !' });
       } else {
         // Create user
-        const createResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
+        const createResponse = await fetch(`${API_URL}/auth/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -245,7 +246,7 @@ export default function UsersPage() {
         console.log('Assigning roles:', formData.role_ids);
 
         // Assign roles
-        const rolesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${newUser.id}/roles`, {
+        const rolesResponse = await fetch(`${API_URL}/users/${newUser.id}/roles`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
