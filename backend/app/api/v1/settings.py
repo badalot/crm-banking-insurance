@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core import deps
+from app.core.database import get_db
 from app.models.user import User
 from app.models.settings import SystemSettings
 from app.schemas.settings import (
@@ -17,7 +18,7 @@ router = APIRouter()
 
 @router.get("/", response_model=SystemSettingsResponse)
 def get_settings(
-    db: Session = Depends(deps.get_db),
+    db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
@@ -68,7 +69,7 @@ def get_settings(
 @router.put("/", response_model=SystemSettingsResponse)
 def update_settings(
     *,
-    db: Session = Depends(deps.get_db),
+    db: Session = Depends(get_db),
     settings_in: SystemSettingsUpdate,
     current_user: User = Depends(deps.get_current_active_superuser),
 ) -> Any:
@@ -98,7 +99,7 @@ def update_settings(
 
 @router.post("/test-email")
 def test_email_config(
-    db: Session = Depends(deps.get_db),
+    db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_superuser),
 ) -> Any:
     """
@@ -121,7 +122,7 @@ def test_email_config(
 
 @router.post("/reset", response_model=SystemSettingsResponse)
 def reset_settings(
-    db: Session = Depends(deps.get_db),
+    db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_superuser),
 ) -> Any:
     """
