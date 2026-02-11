@@ -10,6 +10,7 @@ import redis
 # Import models to create tables
 from app.models.user import User, Role, Permission  # noqa
 from app.models.audit import AuditLog  # noqa
+from app.models.settings import SystemSettings  # noqa
 
 # Create tables (temporaire, on utilisera Alembic plus tard)
 Base.metadata.create_all(bind=engine)
