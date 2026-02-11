@@ -3,6 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import API_URL from '@/config/api';
 
 export default function ChangePasswordPage() {
   const { user, loading, isAuthenticated } = useAuth();
@@ -44,7 +45,7 @@ export default function ChangePasswordPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/change-password`, {
+      const response = await fetch(`${API_URL}/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
