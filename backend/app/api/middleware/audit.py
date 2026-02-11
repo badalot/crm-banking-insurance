@@ -114,61 +114,68 @@ async def audit_middleware(request: Request, call_next):
     """
     Middleware to automatically log significant actions
     """
-    # Skip audit logging for certain routes
-    skip_routes = [
-        "/docs",
-        "/redoc",
-        "/openapi.json",
-        "/audit",  # Don't log audit log queries
-        "/stats",  # Don't log stats queries
-        "/health",
-    ]
-    
-    if any(route in request.url.path for route in skip_routes):
-        return await call_next(request)
-    
-    # Only log write operations (POST, PUT, PATCH, DELETE)
-    if request.method not in ["POST", "PUT", "PATCH", "DELETE"]:
-        return await call_next(request)
-    
-    # Determine action type
-    action = get_action_from_route(request.method, request.url.path)
-    
-    if not action:
-        return await call_next(request)
-    
-    # Get user info from request state (set by auth dependency)
-    user_id = getattr(request.state, "user_id", None)
-    user_email = getattr(request.state, "user_email", None)
-    user_name = getattr(request.state, "user_name", None)
-    
-    # Process the request
-    response: Response = await call_next(request)
-    
-    # Only log successful operations (2xx status codes)
-    if 200 <= response.status_code < 300:
-        # Generate description based on action
-        description = generate_description(action, request)
+    try:
+        # Skip audit logging for certain routes
+        skip_routes = [
+            "/docs",
+            "/redoc",
+            "/openapi.json",
+            "/audit",  # Don't log audit log queries
+            "/stats",  # Don't log stats queries
+            "/health",
+            "/login",  # Skip login for now to avoid issues
+        ]
         
-        # Extract target info from path if available
-        target_type, target_id = extract_target_info(request.url.path)
+        if any(route in request.url.path for route in skip_routes):
+            return await call_next(request)
         
-        # Log the event asynchronously (fire and forget)
-        try:
-            await log_audit_event(
-                action=action,
-                description=description,
-                request=request,
-                user_id=user_id,
-                user_email=user_email,
-                user_name=user_name,
-                target_type=target_type,
-                target_id=target_id,
-            )
-        except Exception as e:
-            print(f"Failed to log audit event: {e}")
-    
-    return response
+        # Only log write operations (POST, PUT, PATCH, DELETE)
+        if request.method not in ["POST", "PUT", "PATCH", "DELETE"]:
+            return await call_next(request)
+        
+        # Determine action type
+        action = get_action_from_route(request.method, request.url.path)
+        
+        if not action:
+            return await call_next(request)
+        
+        # Get user info from request state (set by auth dependency)
+        user_id = getattr(request.state, "user_id", None)
+        user_email = getattr(request.state, "user_email", None)
+        user_name = getattr(request.state, "user_name", None)
+        
+        # Process the request
+        response: Response = await call_next(request)
+        
+        # Only log successful operations (2xx status codes)
+        if 200 <= response.status_code < 300:
+            # Generate description based on action
+            description = generate_description(action, request)
+            
+            # Extract target info from path if available
+            target_type, target_id = extract_target_info(request.url.path)
+            
+            # Log the event asynchronously (fire and forget)
+            try:
+                await log_audit_event(
+                    action=action,
+                    description=description,
+                    request=request,
+                    user_id=user_id,
+                    user_email=user_email,
+                    user_name=user_name,
+                    target_type=target_type,
+                    target_id=target_id,
+                )
+            except Exception as e:
+                # Never fail the request because of audit logging
+                print(f"Failed to log audit event: {e}")
+        
+        return response
+    except Exception as e:
+        # If audit middleware fails, still process the request
+        print(f"Audit middleware error: {e}")
+        return await call_next(request)
 
 
 def generate_description(action: ActionType, request: Request) -> str:

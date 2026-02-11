@@ -21,16 +21,17 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS
+# CORS - DOIT ÊTRE LE PREMIER MIDDLEWARE
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origins=["*"],  # Autoriser toutes les origines temporairement pour debug
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
-# Audit logging middleware
+# Audit logging middleware - APRÈS CORS
 app.middleware("http")(audit_middleware)
 
 # Include API routes
