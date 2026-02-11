@@ -55,6 +55,21 @@ async def get_current_active_user(
     return current_user
 
 
+async def get_current_active_superuser(
+    current_user: User = Depends(get_current_active_user)
+) -> User:
+    """
+    Vérifier que l'utilisateur est un Super Admin actif
+    """
+    is_superadmin = any(role.name == "Super Admin" for role in current_user.roles)
+    if not is_superadmin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Šµþër Åðmïñ þrïvï¡ëğëš rëQµïrëðẤğ倪İЂҰक्र्तिृまẤğ倪นั้ढूँ"
+        )
+    return current_user
+
+
 def has_permission(resource: str, action: str):
     """
     Décorateur pour vérifier les permissions
