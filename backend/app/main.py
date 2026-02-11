@@ -1,23 +1,38 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db, engine, Base
 from app.api.v1 import api_router
 import redis
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 # Create tables (temporaire, on utilisera Alembic plus tard)
 Base.metadata.create_all(bind=engine)
+
+
+# Middleware pour gérer les trailing slashes sans redirection HTTP
+class TrailingSlashMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Si l'URL ne se termine pas par / et n'est pas un fichier statique
+        if not request.url.path.endswith('/') and '.' not in request.url.path.split('/')[-1]:
+            # Ajouter le trailing slash directement sans redirection
+            request.scope['path'] = request.url.path + '/'
+        
+        response = await call_next(request)
+        return response
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
-    # Désactiver la redirection automatique des trailing slashes
-    # pour éviter les redirections HTTP de Railway
-    redirect_slashes=False,
 )
+
+# Ajouter le middleware de trailing slash AVANT CORS
+app.add_middleware(TrailingSlashMiddleware)
 
 # CORS
 app.add_middleware(
