@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 interface User {
   id: string;
@@ -110,15 +110,21 @@ export default function UsersPage() {
   const fetchRoles = async () => {
     try {
       const token = localStorage.getItem('token');
+      console.log('Fetching roles from:', `${process.env.NEXT_PUBLIC_API_URL}/roles`);
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/roles`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
+      console.log('Roles response status:', response.status);
       if (response.ok) {
         const data = await response.json();
+        console.log('Roles fetched:', data);
         setRoles(data);
+      } else {
+        const error = await response.json();
+        console.error('Roles fetch error:', error);
       }
     } catch (error) {
       console.error('Error fetching roles:', error);
@@ -289,14 +295,18 @@ export default function UsersPage() {
     });
   };
 
-  const toggleRole = (roleId: string) => {
+  const toggleRole = useCallback((roleId: string) => {
     setFormData(prev => ({
       ...prev,
       role_ids: prev.role_ids.includes(roleId)
         ? prev.role_ids.filter(id => id !== roleId)
         : [...prev.role_ids, roleId]
     }));
-  };
+  }, []);
+
+  const handleInputChange = useCallback((field: keyof UserFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [field]: e.target.value }));
+  }, []);
 
   if (loading || !user) {
     return (
@@ -544,7 +554,7 @@ export default function UsersPage() {
                     id="first_name"
                     type="text"
                     value={formData.first_name}
-                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                    onChange={handleInputChange('first_name')}
                     className="w-full px-4 py-3 rounded-xl glass bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:outline-none transition-all"
                     required
                   />
@@ -557,7 +567,7 @@ export default function UsersPage() {
                     id="last_name"
                     type="text"
                     value={formData.last_name}
-                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                    onChange={handleInputChange('last_name')}
                     className="w-full px-4 py-3 rounded-xl glass bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:outline-none transition-all"
                     required
                   />
@@ -574,7 +584,7 @@ export default function UsersPage() {
                     id="username"
                     type="text"
                     value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    onChange={handleInputChange('username')}
                     className="w-full px-4 py-3 rounded-xl glass bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:outline-none transition-all"
                     required
                     disabled={!!selectedUser}
@@ -588,7 +598,7 @@ export default function UsersPage() {
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={handleInputChange('email')}
                     className="w-full px-4 py-3 rounded-xl glass bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:outline-none transition-all"
                     required
                   />
@@ -605,7 +615,7 @@ export default function UsersPage() {
                     id="phone"
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={handleInputChange('phone')}
                     className="w-full px-4 py-3 rounded-xl glass bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:outline-none transition-all"
                     placeholder="+33 6 12 34 56 78"
                   />
@@ -619,7 +629,7 @@ export default function UsersPage() {
                       id="password"
                       type="password"
                       value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      onChange={handleInputChange('password')}
                       className="w-full px-4 py-3 rounded-xl glass bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:outline-none transition-all"
                       required={!selectedUser}
                       minLength={8}
@@ -632,37 +642,43 @@ export default function UsersPage() {
               {/* Roles */}
               <div>
                 <div className="block text-sm font-medium text-gray-400 mb-3">
-                  Rôles *
+                  Rôles * {roles.length === 0 && <span className="text-red-400 text-xs">(Aucun rôle disponible)</span>}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {roles.map((role) => (
-                    <button
-                      key={role.id}
-                      type="button"
-                      onClick={() => toggleRole(role.id)}
-                      className={`p-4 rounded-xl border-2 transition-all text-left ${
-                        formData.role_ids.includes(role.id)
-                          ? 'bg-purple-500/20 border-purple-500/50 text-white'
-                          : 'bg-white/5 border-white/10 text-gray-400 hover:border-purple-500/30'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{role.name}</p>
-                          {role.description && (
-                            <p className="text-xs mt-1 opacity-75">{role.description}</p>
+                {roles.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-sm">
+                    ⚠️ Aucun rôle disponible. Vérifiez que l&apos;API des rôles fonctionne correctement.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {roles.map((role) => (
+                      <button
+                        key={role.id}
+                        type="button"
+                        onClick={() => toggleRole(role.id)}
+                        className={`p-4 rounded-xl border-2 transition-all text-left ${
+                          formData.role_ids.includes(role.id)
+                            ? 'bg-purple-500/20 border-purple-500/50 text-white'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:border-purple-500/30'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{role.name}</p>
+                            {role.description && (
+                              <p className="text-xs mt-1 opacity-75">{role.description}</p>
+                            )}
+                          </div>
+                          {formData.role_ids.includes(role.id) && (
+                            <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                           )}
                         </div>
-                        {formData.role_ids.includes(role.id) && (
-                          <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                {formData.role_ids.length === 0 && (
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {formData.role_ids.length === 0 && roles.length > 0 && (
                   <p className="text-sm text-red-400 mt-2">Veuillez sélectionner au moins un rôle</p>
                 )}
               </div>
