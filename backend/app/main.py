@@ -14,6 +14,9 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
+    # Désactiver la redirection automatique des trailing slashes
+    # pour éviter les redirections HTTP de Railway
+    redirect_slashes=False,
 )
 
 # CORS
