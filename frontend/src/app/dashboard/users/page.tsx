@@ -345,15 +345,20 @@ export default function UsersPage() {
       </div>
 
       <div className="relative max-w-7xl mx-auto">
+        {/* Back Button */}
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-all group"
+        >
+          <svg className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Retour au Dashboard
+        </button>
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8 animate-fadeInUp">
           <div>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="mb-4 px-4 py-2 rounded-xl glass hover:bg-white/10 transition-all text-white/90 hover:text-white flex items-center gap-2"
-            >
-              <span>←</span> Retour au dashboard
-            </button>
             <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
               <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
