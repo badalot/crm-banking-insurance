@@ -62,12 +62,14 @@ class RoleBase(BaseModel):
 
 
 class RoleCreate(RoleBase):
-    pass
+    permission_ids: Optional[List[str]] = []
 
 
 class RoleResponse(RoleBase):
     id: UUID
+    permissions: List['PermissionResponse'] = []
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

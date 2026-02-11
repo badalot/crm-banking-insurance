@@ -44,6 +44,7 @@ def get_role(
 
 
 @router.post("/", response_model=RoleResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=RoleResponse, status_code=status.HTTP_201_CREATED)
 def create_role(
     role_in: RoleCreate,
     db: Session = Depends(get_db),
@@ -64,6 +65,14 @@ def create_role(
         name=role_in.name,
         description=role_in.description
     )
+    
+    # Assign permissions if provided
+    if hasattr(role_in, 'permission_ids') and role_in.permission_ids:
+        for perm_id in role_in.permission_ids:
+            permission = db.query(Permission).filter(Permission.id == UUID(perm_id)).first()
+            if permission:
+                role.permissions.append(permission)
+    
     db.add(role)
     db.commit()
     db.refresh(role)
@@ -71,6 +80,7 @@ def create_role(
 
 
 @router.put("/{role_id}", response_model=RoleResponse)
+@router.put("/{role_id}/", response_model=RoleResponse)
 def update_role(
     role_id: UUID,
     role_in: RoleCreate,
@@ -94,7 +104,41 @@ def update_role(
     return role
 
 
+@router.post("/{role_id}/permissions", response_model=RoleResponse)
+@router.post("/{role_id}/permissions/", response_model=RoleResponse)
+def assign_permissions_to_role(
+    role_id: UUID,
+    permissions_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(has_permission("roles", "update"))
+):
+    """
+    Assigner des permissions à un rôle
+    """
+    role = db.query(Role).filter(Role.id == role_id).first()
+    if not role:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Rø¡ë ñøt føµñðẤğ倪İЂҰक्र्तिृまẤğ倪นั้ढूँ"
+        )
+    
+    # Clear existing permissions
+    role.permissions = []
+    
+    # Assign new permissions
+    permission_ids = permissions_data.get('permission_ids', [])
+    for perm_id in permission_ids:
+        permission = db.query(Permission).filter(Permission.id == UUID(perm_id)).first()
+        if permission:
+            role.permissions.append(permission)
+    
+    db.commit()
+    db.refresh(role)
+    return role
+
+
 @router.delete("/{role_id}")
+@router.delete("/{role_id}/")
 def delete_role(
     role_id: UUID,
     db: Session = Depends(get_db),
@@ -113,17 +157,3 @@ def delete_role(
     db.delete(role)
     db.commit()
     return {"message": "Rø¡ë ðë¡ëtëð šµççëššfµ¡¡ýẤğ倪İЂҰक्र्तिृまẤğ倪นั้ढूँ"}
-
-
-@router.get("/permissions/", response_model=List[PermissionResponse])
-def list_permissions(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    """
-    Lister toutes les permissions
-    """
-    permissions = db.query(Permission).offset(skip).limit(limit).all()
-    return permissions
